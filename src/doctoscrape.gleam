@@ -51,11 +51,11 @@ type AvailabilityRequest {
   )
 }
 
-fn int_list_to_string(i: List(Int), s: String) -> String {
-  case i {
-    [] -> s
-    [l] -> int_list_to_string([], s <> int.to_string(l))
-    [e, ..rest] -> int_list_to_string(rest, int.to_string(e) <> "-")
+fn int_list_to_string(list: List(Int), result: String) -> String {
+  case list {
+    [] -> result
+    [last] -> int_list_to_string([], result <> int.to_string(last))
+    [item, ..rest] -> int_list_to_string(rest, int.to_string(item) <> "-")
   }
 }
 
@@ -64,10 +64,10 @@ pub fn main() {
   let assert Ok(body) =
     get_availabilities(AvailabiliyRequest([], [], [], Public))
 
-  let u = json.decode(from: body, using: dynamic.dynamic)
-  let assert Ok(data) = u
-  let assert Ok(aval) = availability_response_decorder()(data)
-  io.debug(aval)
+  let assert Ok(data) = json.decode(from: body, using: dynamic.dynamic)
+  let assert Ok(decoded_data) = availability_response_decorder()(data)
+
+  io.debug(decoded_data)
 }
 
 const default_headers = [
@@ -77,9 +77,9 @@ const default_headers = [
 ]
 
 fn get_availabilities(
-  ar: AvailabilityRequest,
+  request: AvailabilityRequest,
 ) -> Result(String, dynamic.Dynamic) {
-  let uri = build_uri(ar)
+  let uri = build_uri(request)
   let assert Ok(request) = request.to("https://www.doctolib.de/" <> uri)
 
   let request = build_headers(request, default_headers)
@@ -108,14 +108,14 @@ type Header {
 }
 
 fn build_headers(
-  r: request.Request(String),
+  request: request.Request(String),
   headers: List(Header),
 ) -> request.Request(String) {
   case headers {
-    [] -> r
+    [] -> request
     [header, ..rest] -> {
-      let r = request.set_header(r, header.key, header.value)
-      build_headers(r, rest)
+      let request = request.set_header(request, header.key, header.value)
+      build_headers(request, rest)
     }
   }
 }
