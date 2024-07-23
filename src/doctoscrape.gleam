@@ -1,10 +1,10 @@
 import cors_builder
 import gleam/erlang/process
 import gleam/http.{Get, Post}
-import lustre/attribute.{href, rel}
+import lustre/attribute.{class, href, rel, type_, value}
 import lustre/element.{type Element}
 import lustre/element/html.{
-  body, h1, head, html, link, main as html_main, text, title,
+  body, div, form, h1, head, html, input, link, main as html_main, text, title,
 }
 import mist
 import wisp.{type Request, type Response}
@@ -79,7 +79,24 @@ fn home(req: Request) -> Response {
 }
 
 fn home_view(req: Request) -> Response {
-  base_layout(req, h1([], [text("Hi")]), 200)
+  base_layout(
+    req,
+    div([class("home")], [
+      form([class("search")], [
+        div([class("search-title-wrapper")], [
+          div([class("search-title")], [h1([], [text("Doctoscrape")])]),
+          text(
+            "Doctoscrape is a tool schedule doctolib lookups to get notification about rare appointment slots",
+          ),
+        ]),
+        div([class("search-area")], [
+          input([class("search-input")]),
+          input([class("search-submit"), type_("submit"), value("Submit")]),
+        ]),
+      ]),
+    ]),
+    200,
+  )
 }
 
 fn not_found_view(req: Request) -> Response {
