@@ -1,13 +1,32 @@
+import doctoscrape/doctoscrape
 import gleam/dynamic.{type Decoder}
-import gleam/http/request
+import gleam/http/request.{type Request}
 import gleam/httpc
 import gleam/int
 import gleam/io
 import gleam/json
 
+pub fn main() {
+  io.println("Hello from doctoscrape!")
+
+  let assert Ok(body) =
+    get_availabilities(AvailabiliyRequest([], [], [], Public))
+  let assert Ok(data) = json.decode(from: body, using: dynamic.dynamic)
+  let assert Ok(decoded_data) = availability_response_decorder()(data)
+
+  io.debug(decoded_data)
+}
+
 type Insurance {
   Public
   Private
+}
+
+fn insurance_to_string(insurance: Insurance) -> String {
+  case insurance {
+    Public -> "public"
+    Private -> "private"
+  }
 }
 
 pub type Availability {
@@ -35,13 +54,6 @@ fn availability_response_decorder() -> Decoder(AvailabilityResponse) {
   )
 }
 
-fn insurance_to_string(insurance: Insurance) -> String {
-  case insurance {
-    Public -> "public"
-    Private -> "private"
-  }
-}
-
 type AvailabilityRequest {
   AvailabiliyRequest(
     visit_motives: List(Int),
@@ -59,58 +71,43 @@ fn int_list_to_string(list: List(Int), result: String) -> String {
   }
 }
 
-pub fn main() {
-  io.println("Hello from doctoscrape!")
-  let assert Ok(body) =
-    get_availabilities(AvailabiliyRequest([], [], [], Public))
-
-  let assert Ok(data) = json.decode(from: body, using: dynamic.dynamic)
-  let assert Ok(decoded_data) = availability_response_decorder()(data)
-
-  io.debug(decoded_data)
-}
-
-const default_headers = [
-  Header("authority", "www.doctilb.de"), Header("accept", "application/json"),
-  Header("accept-language", "en-US,en;q=0.9,de;q=0.8"),
-  Header("content-type", "application/json; charset-utf-8"),
-]
-
 fn get_availabilities(
-  request: AvailabilityRequest,
+  availability_request: AvailabilityRequest,
 ) -> Result(String, dynamic.Dynamic) {
-  let uri = build_uri(request)
-  let assert Ok(request) = request.to("https://www.doctolib.de/" <> uri)
+  let assert Ok(doctolib_request) = request.to(doctoscrape.endpoint)
+  let doctolib_request = build_uri(doctolib_request, availability_request)
+  let doctolib_request =
+    build_headers(doctolib_request, doctoscrape.default_headers)
 
-  let request = build_headers(request, default_headers)
-  case httpc.send(request) {
+  case httpc.send(doctolib_request) {
     Ok(response) -> Ok(response.body)
     Error(err) -> Error(err)
   }
 }
 
-fn build_uri(ar: AvailabilityRequest) -> String {
-  "availabilities.json?start_date="
-  <> "2024-08-16"
-  <> "&visit_motive_ids="
-  <> int_list_to_string(ar.visit_motives, "")
-  <> "&agenda_ids="
-  <> int_list_to_string(ar.agendas, "")
-  <> "&practice_ids="
-  <> int_list_to_string(ar.practices, "")
-  <> "&insurance_sector="
-  <> insurance_to_string(ar.insurance)
-  <> "&limit=15"
-}
+fn build_uri(
+  request: Request(String),
+  availability_request: AvailabilityRequest,
+) -> Request(String) {
+  let int_list_to_string = int_list_to_string(_, "")
 
-type Header {
-  Header(key: String, value: String)
+  request.set_query(request, [
+    #("start_date", "2024-08-16"),
+    #(
+      "visit_motive_ids",
+      int_list_to_string(availability_request.visit_motives),
+    ),
+    #("agenda_ids", int_list_to_string(availability_request.agendas)),
+    #("practice", int_list_to_string(availability_request.practices)),
+    #("insurance_sector", insurance_to_string(availability_request.insurance)),
+    #("limit", "15"),
+  ])
 }
 
 fn build_headers(
-  request: request.Request(String),
-  headers: List(Header),
-) -> request.Request(String) {
+  request: Request(String),
+  headers: List(doctoscrape.Header),
+) -> Request(String) {
   case headers {
     [] -> request
     [header, ..rest] -> {
