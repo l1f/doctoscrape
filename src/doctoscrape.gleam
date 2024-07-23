@@ -1,20 +1,81 @@
-import doctoscrape/doctolib
-import gleam/dynamic
-import gleam/io
-import gleam/json
+import cors_builder
+import gleam/erlang/process
+import gleam/http.{Get, Post}
+import lustre/element.{type Element}
+import lustre/element/html.{body, h1, head, html, main as html_main, text, title}
+import mist
+import wisp.{type Request, type Response}
 
 pub fn main() {
-  io.println("Hello from doctoscrape!")
+  wisp.configure_logger()
 
-  let assert Ok(body) =
-    doctolib.get_availabilities(doctolib.AvailabiliyRequest(
-      [],
-      [],
-      [],
-      doctolib.Public,
-    ))
-  let assert Ok(data) = json.decode(from: body, using: dynamic.dynamic)
-  let assert Ok(decoded_data) = doctolib.availability_response_decorder()(data)
+  let secret_key_base = wisp.random_string(64)
 
-  io.debug(decoded_data)
+  // Start the server
+  let assert Ok(_) =
+    handle_request
+    |> wisp.mist_handler(secret_key_base)
+    |> mist.new
+    |> mist.port(8000)
+    |> mist.start_http
+
+  process.sleep_forever()
+}
+
+// Router  ----
+
+fn handle_request(req: Request) -> Response {
+  use req <- middleware(req)
+
+  case wisp.path_segments(req) {
+    [] -> home(req)
+    _ -> not_found_view(req)
+  }
+}
+
+fn cors() {
+  cors_builder.new()
+  |> cors_builder.allow_origin("http://localhost:1234")
+  |> cors_builder.allow_method(Get)
+  |> cors_builder.allow_method(Post)
+}
+
+fn middleware(req: Request, handle_request: fn(Request) -> Response) -> Response {
+  let req = wisp.method_override(req)
+  use <- wisp.log_request(req)
+  use <- wisp.rescue_crashes
+  use req <- wisp.handle_head(req)
+  use req <- cors_builder.wisp_middleware(req, cors())
+
+  handle_request(req)
+}
+
+// Views ----
+
+fn home(req: Request) -> Response {
+  case req.method {
+    Get -> home_view(req)
+    _ -> wisp.method_not_allowed([Get])
+  }
+}
+
+fn home_view(req: Request) -> Response {
+  base_layout(req, h1([], [text("Hi")]), 200)
+}
+
+fn not_found_view(req: Request) -> Response {
+  base_layout(req, h1([], [text("Page Not Found")]), 404)
+}
+
+// layouts ----
+
+fn base_layout(_req: Request, children: Element(a), status: Int) -> Response {
+  let html =
+    html([], [
+      head([], [title([], "Doctoscrape")]),
+      body([], [html_main([], [children])]),
+    ])
+
+  let response = element.to_document_string_builder(html)
+  wisp.html_response(response, status)
 }
