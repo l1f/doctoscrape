@@ -1,8 +1,11 @@
 import cors_builder
 import gleam/erlang/process
 import gleam/http.{Get, Post}
+import lustre/attribute.{href, rel}
 import lustre/element.{type Element}
-import lustre/element/html.{body, h1, head, html, main as html_main, text, title}
+import lustre/element/html.{
+  body, h1, head, html, link, main as html_main, text, title,
+}
 import mist
 import wisp.{type Request, type Response}
 
@@ -10,10 +13,12 @@ pub fn main() {
   wisp.configure_logger()
 
   let secret_key_base = wisp.random_string(64)
+  let ctx = Context(static_directory: static_directory())
+  let handler = handle_request(_, ctx)
 
   // Start the server
   let assert Ok(_) =
-    handle_request
+    handler
     |> wisp.mist_handler(secret_key_base)
     |> mist.new
     |> mist.port(8000)
@@ -24,8 +29,12 @@ pub fn main() {
 
 // Router  ----
 
-fn handle_request(req: Request) -> Response {
-  use req <- middleware(req)
+type Context {
+  Context(static_directory: String)
+}
+
+fn handle_request(req: Request, ctx: Context) -> Response {
+  use req <- middleware(req, ctx)
 
   case wisp.path_segments(req) {
     [] -> home(req)
@@ -40,14 +49,24 @@ fn cors() {
   |> cors_builder.allow_method(Post)
 }
 
-fn middleware(req: Request, handle_request: fn(Request) -> Response) -> Response {
+fn middleware(
+  req: Request,
+  ctx: Context,
+  handle_request: fn(Request) -> Response,
+) -> Response {
   let req = wisp.method_override(req)
   use <- wisp.log_request(req)
   use <- wisp.rescue_crashes
   use req <- wisp.handle_head(req)
   use req <- cors_builder.wisp_middleware(req, cors())
+  use <- wisp.serve_static(req, under: "/static", from: ctx.static_directory)
 
   handle_request(req)
+}
+
+pub fn static_directory() -> String {
+  let assert Ok(priv_directory) = wisp.priv_directory("doctoscrape")
+  priv_directory <> "/static"
 }
 
 // Views ----
@@ -72,7 +91,10 @@ fn not_found_view(req: Request) -> Response {
 fn base_layout(_req: Request, children: Element(a), status: Int) -> Response {
   let html =
     html([], [
-      head([], [title([], "Doctoscrape")]),
+      head([], [
+        title([], "Doctoscrape"),
+        link([rel("stylesheet"), href("/static/style.css")]),
+      ]),
       body([], [html_main([], [children])]),
     ])
 
