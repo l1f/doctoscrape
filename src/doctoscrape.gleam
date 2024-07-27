@@ -1,6 +1,11 @@
 import cors_builder
+import gleam/bool
 import gleam/erlang/process
 import gleam/http.{Get, Post}
+import gleam/http/request
+import gleam/io
+import gleam/result
+import gleam/string
 import lustre/attribute.{class, href, rel, type_, value}
 import lustre/element.{type Element}
 import lustre/element/html.{
@@ -42,6 +47,33 @@ fn handle_request(req: Request, ctx: Context) -> Response {
   }
 }
 
+fn require_hx_request(
+  req: Request,
+  under prefix: String,
+  next handle_request: fn(Request) -> Response,
+) -> Response {
+  let path = remove_preceeding_slashes(req.path)
+  let prefix = remove_preceeding_slashes(prefix)
+
+  // TODO: Parse to bool
+  let is_hx_header =
+    result.unwrap(request.get_header(req, "HX-Request"), "false")
+  let is_hx_path = string.starts_with(path, prefix)
+
+  case is_hx_header, is_hx_path {
+    "false", False -> handle_request(req)
+    "true", True -> handle_request(req)
+    _, _ -> is_not_htmx_request_view(req)
+  }
+}
+
+fn remove_preceeding_slashes(string: String) -> String {
+  case string {
+    "/" <> rest -> remove_preceeding_slashes(rest)
+    _ -> string
+  }
+}
+
 fn cors() {
   cors_builder.new()
   |> cors_builder.allow_origin("http://localhost:1234")
@@ -60,6 +92,7 @@ fn middleware(
   use req <- wisp.handle_head(req)
   use req <- cors_builder.wisp_middleware(req, cors())
   use <- wisp.serve_static(req, under: "/static", from: ctx.static_directory)
+  use req <- require_hx_request(req, under: "/hx")
 
   handle_request(req)
 }
@@ -86,13 +119,14 @@ fn home_view(req: Request) -> Response {
         div([class("search-title-wrapper")], [
           div([class("search-title")], [h1([], [text("Doctoscrape")])]),
           text(
-            "Doctoscrape is a tool schedule doctolib lookups to get notification about rare appointment slots",
+            "Schedule doctolib lookups to get notification about rare appointment slots",
           ),
         ]),
         div([class("search-area")], [
           input([class("search-input")]),
           input([class("search-submit"), type_("submit"), value("Submit")]),
         ]),
+        div([], []),
       ]),
     ]),
     200,
@@ -101,6 +135,10 @@ fn home_view(req: Request) -> Response {
 
 fn not_found_view(req: Request) -> Response {
   base_layout(req, h1([], [text("Page Not Found")]), 404)
+}
+
+fn is_not_htmx_request_view(req: Request) -> Response {
+  partial_layout(req, div([], [text("htmx error")]), 400)
 }
 
 // layouts ----
@@ -116,5 +154,10 @@ fn base_layout(_req: Request, children: Element(a), status: Int) -> Response {
     ])
 
   let response = element.to_document_string_builder(html)
+  wisp.html_response(response, status)
+}
+
+fn partial_layout(_req: Request, children: Element(a), status: Int) -> Response {
+  let response = element.to_document_string_builder(children)
   wisp.html_response(response, status)
 }
