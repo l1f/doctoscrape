@@ -1,25 +1,19 @@
 # doctoscrape
 
-[![Package Version](https://img.shields.io/hexpm/v/doctoscrape)](https://hex.pm/packages/doctoscrape)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/doctoscrape/)
+## The state of the project
+This project is far from done and at my level of procrastinating everything, i guess it will never reach a usable state.
 
-```sh
-gleam add doctoscrape
-```
-```gleam
-import doctoscrape
+## What is this?
+Sometimes I need doctors appointments in specialized places, but i don't want open doctolib every five minutes to check if there are open slots.
 
-pub fn main() {
-  // TODO: An example of the project in use
-}
-```
+So here we are, with doctoscrape it is possible to create jobs, thats checks the doctolib api for appointments. Or at least this is the idea.
 
-Further documentation can be found at <https://hexdocs.pm/doctoscrape>.
+## Is there a public instance that i can use?
 
-## Development
+NO. And i don't ever host one.
 
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-gleam shell # Run an Erlang shell
-```
+I don't want deal with user data and I don't want responsible hosting any medicaldata. Ever. 
+
+This project is created because of the desperated need of specific appointments.
+
+For the same reason i don't provide relases or some promise of stability.
