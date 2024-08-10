@@ -1,6 +1,7 @@
 import gleam/http.{Get}
-import lustre/attribute.{class, type_, value}
+import lustre/attribute.{class, id, name, type_, value}
 import lustre/element/html.{div, form, h1, input, text}
+import lustre_hx as hx
 import web/layouts
 import wisp.{type Request, type Response}
 
@@ -23,10 +24,17 @@ fn home_view(req: Request) -> Response {
           ),
         ]),
         div([class("search-area")], [
-          input([class("search-input")]),
+          input([
+            class("search-input"),
+            type_("search"),
+            name("search"),
+            hx.post("/hx/doctolib/search"),
+            hx.trigger([hx.Event("input changed delay:500ms, search", [])]),
+            hx.target(hx.CssSelector("#search-results")),
+          ]),
           input([class("search-submit"), type_("submit"), value("Submit")]),
         ]),
-        div([], []),
+        div([id("search-results")], []),
       ]),
     ]),
     200,

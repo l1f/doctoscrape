@@ -1,6 +1,6 @@
-import lustre/attribute.{href, rel}
+import lustre/attribute.{href, rel, src}
 import lustre/element.{type Element}
-import lustre/element/html.{body, head, html, link, main, title}
+import lustre/element/html.{body, head, html, link, main, script, title}
 import wisp.{type Request, type Response}
 
 pub fn base_layout(_req: Request, children: Element(a), status: Int) -> Response {
@@ -9,6 +9,7 @@ pub fn base_layout(_req: Request, children: Element(a), status: Int) -> Response
       head([], [
         title([], "Doctoscrape"),
         link([rel("stylesheet"), href("/static/style.css")]),
+        script([src("https://unpkg.com/htmx.org@2.0.1")], ""),
       ]),
       body([], [main([], [children])]),
     ])
@@ -22,6 +23,6 @@ pub fn partial_layout(
   children: Element(a),
   status: Int,
 ) -> Response {
-  let response = element.to_document_string_builder(children)
+  let response = element.to_string_builder(children)
   wisp.html_response(response, status)
 }

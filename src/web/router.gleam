@@ -1,5 +1,6 @@
 import lustre/element/html.{h1, text}
 import web/home.{home}
+import web/htmx.{hx_search_results}
 import web/layouts
 import web/middleware.{middleware}
 import web/web.{type Context}
@@ -10,6 +11,7 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
 
   case wisp.path_segments(req) {
     [] -> home(req)
+    ["hx", "doctolib", "search"] -> hx_search_results(req)
     _ -> not_found_view(req)
   }
 }
