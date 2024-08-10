@@ -1,4 +1,4 @@
-import doctoscrape/doctolib.{type Autocomplete}
+import doctoscrape/doctolib.{type Autocomplete, type Profile}
 import gleam/http.{Post}
 import gleam/list
 import gleam/result
@@ -32,25 +32,37 @@ fn hx_search_results_view(req: Request) -> Response {
 
   case search_result {
     Ok(result) -> layouts.partial_layout(req, result, 200)
+    // TODO: 400 is not correct in any case, the doctolib api can response wrong things
+    // in that case it should return a internal server error
     Error(_) -> layouts.partial_layout(req, text("error"), 400)
   }
 }
 
 fn search_result_to_html(result: String) -> Element(a) {
-  let first = {
+  let html_profiles = {
     use autocomplete <- result.try(
       doctolib.decode_autocomplete(result)
       |> result.map_error(web.DoctolibApiError),
     )
 
-    use first <- result.try(
-      list.first(autocomplete.profiles) |> result.map_error(web.ClientError),
-    )
-
-    Ok(first)
+    profiles_to_html(autocomplete.profiles) |> Ok()
   }
-  case first {
-    Ok(e) -> div([], [text(e.name)])
+
+  case html_profiles {
+    Ok(html) -> html
     Error(_) -> div([], [])
   }
+}
+
+fn profiles_to_html(profiles: List(Profile)) -> Element(a) {
+  profiles
+  |> list.map(profile_to_html)
+  |> div([], _)
+}
+
+fn profile_to_html(profile: Profile) -> Element(a) {
+  div([], [
+    div([], [text("Name"), text(profile.name)]),
+    div([], [text("Stadt"), text(profile.city)]),
+  ])
 }
