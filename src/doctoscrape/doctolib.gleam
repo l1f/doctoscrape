@@ -91,10 +91,10 @@ pub fn autocomplete_decoder() -> Decoder(Autocomplete) {
 
 pub fn decode_autocomplete(data: String) -> Result(Autocomplete, APIError) {
   use data <- result.try(
-    json.decode(data, dynamic.dynamic) |> result.map_error(DecodingError)
+    json.decode(data, dynamic.dynamic) |> result.map_error(DecodingError),
   )
   use autocomplete <- result.try(
-    autocomplete_decoder()(data) |> result.map_error(DecodingListError)
+    autocomplete_decoder()(data) |> result.map_error(DecodingListError),
   )
 
   Ok(autocomplete)

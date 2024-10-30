@@ -1,5 +1,7 @@
+import lustre/attribute
 import doctoscrape/doctolib.{type Autocomplete, type Profile}
 import gleam/http.{Post}
+import gleam/int
 import gleam/list
 import gleam/result
 import lustre/element.{type Element}
@@ -61,8 +63,15 @@ fn profiles_to_html(profiles: List(Profile)) -> Element(a) {
 }
 
 fn profile_to_html(profile: Profile) -> Element(a) {
-  div([], [
-    div([], [text("Name"), text(profile.name)]),
-    div([], [text("Stadt"), text(profile.city)]),
+  div([attribute.class("search-profile")], [
+    div([], [text("Stadt: "), text(profile.city)]),
+    div([], [text("Type: "), text(profile.owner_type)]),
+    div([], [text("Value: "), text(int.to_string(profile.value))]),
+    div([], [text("Name: "), text(profile.name)]),
+    div([], [text("Name mit title: "), text(profile.name_with_title)]),
+    div([], [text("Haupt Name: "), text(profile.main_name)]),
+    div([], [text("cpi: "), text(profile.cloudinary_public_id)]),
+    div([], [text("kind: "), text(profile.kind)]),
+    div([], [text("link: "), text(profile.link)]),
   ])
 }

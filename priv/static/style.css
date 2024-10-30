@@ -12,11 +12,7 @@ main {
 
 .home {
   display: grid;
-  grid-template-areas:
-    "sidebar navbar "
-    "sidebar main   "
-    "sidebar footer ";
-  grid-template-columns: auto 1fr;
+ grid-template-columns: auto 1fr;
   grid-template-rows: auto 1fr auto;
   min-height: 100.0vh;
 }
@@ -25,10 +21,6 @@ main {
   display: grid;
   grid-template-rows: auto auto auto;
   grid-template-columns: auto auto auto;
-  grid-template-areas:
-    "title .      .    "
-    "input input input "
-    ".     .     submit";
   padding: 48px;
   gap: 24px;
   max-width: 700px;
@@ -57,4 +49,8 @@ main {
   display: flex;
   flex-direction: column;
   gap: 12.0px
+}
+
+.search-profile {
+  border-bottom: 1px solid;
 }
